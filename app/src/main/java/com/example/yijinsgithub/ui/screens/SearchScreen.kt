@@ -4,7 +4,6 @@ import android.content.res.Configuration
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -21,6 +20,10 @@ import com.example.yijinsgithub.ui.viewmodel.GithubUiState
  *
  * @param uiState The current UI state from the ViewModel.
  * @param repos The list of search result repositories to display.
+ * @param query The current search keyword.
+ * @param language The current search language filter.
+ * @param onQueryChange Callback when search keyword changes.
+ * @param onLanguageChange Callback when search language changes.
  * @param onSearch Callback triggered when the search button is clicked with query and language.
  * @param onRepoClick Callback triggered when a repository item is clicked.
  * @param onDispose Callback to clean up resources when leaving the screen.
@@ -30,6 +33,10 @@ import com.example.yijinsgithub.ui.viewmodel.GithubUiState
 fun SearchScreen(
     uiState: GithubUiState,
     repos: List<Repo>,
+    query: String,
+    language: String,
+    onQueryChange: (String) -> Unit,
+    onLanguageChange: (String) -> Unit,
     onSearch: (String, String?, Boolean) -> Unit,
     onRepoClick: (Repo) -> Unit,
     onDispose: () -> Unit = {}
@@ -41,8 +48,6 @@ fun SearchScreen(
         }
     }
 
-    var query by rememberSaveable { mutableStateOf("") }
-    var language by rememberSaveable { mutableStateOf("") }
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -65,13 +70,13 @@ fun SearchScreen(
                     ) {
                         OutlinedTextField(
                             value = query,
-                            onValueChange = { query = it },
+                            onValueChange = onQueryChange,
                             label = { Text(stringResource(R.string.search_keywords_label)) },
                             modifier = Modifier.weight(1f)
                         )
                         OutlinedTextField(
                             value = language,
-                            onValueChange = { language = it },
+                            onValueChange = onLanguageChange,
                             label = { Text(stringResource(R.string.search_language_label)) },
                             modifier = Modifier.weight(1f)
                         )
@@ -79,14 +84,14 @@ fun SearchScreen(
                 } else {
                     OutlinedTextField(
                         value = query,
-                        onValueChange = { query = it },
+                        onValueChange = onQueryChange,
                         label = { Text(stringResource(R.string.search_keywords_label)) },
                         modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(modifier = Modifier.height(Dimens.SpacerMedium))
                     OutlinedTextField(
                         value = language,
-                        onValueChange = { language = it },
+                        onValueChange = onLanguageChange,
                         label = { Text(stringResource(R.string.search_language_label)) },
                         modifier = Modifier.fillMaxWidth()
                     )

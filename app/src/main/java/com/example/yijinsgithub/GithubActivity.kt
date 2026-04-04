@@ -75,10 +75,16 @@ class GithubActivity : ComponentActivity() {
                         composable(Screen.Search.route) {
                             val searchRepos by viewModel.searchRepos.collectAsState()
                             val uiState by viewModel.uiState.collectAsState()
+                            val searchQuery by viewModel.searchQuery.collectAsState()
+                            val searchLanguage by viewModel.searchLanguage.collectAsState()
 
                             SearchScreen(
                                 uiState = uiState,
                                 repos = searchRepos,
+                                query = searchQuery,
+                                language = searchLanguage,
+                                onQueryChange = { viewModel.updateSearchQuery(it) },
+                                onLanguageChange = { viewModel.updateSearchLanguage(it) },
                                 onSearch = { q, l, r -> viewModel.searchRepos(q, l, r) },
                                 onRepoClick = { repo ->
                                     navController.navigate(Screen.RepoDetail.createRoute(repo.htmlUrl))

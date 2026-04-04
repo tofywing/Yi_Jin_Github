@@ -59,6 +59,18 @@ class GithubViewModel(application: Application) : AndroidViewModel(application) 
      */
     val searchRepos: StateFlow<List<Repo>> = _searchRepos.asStateFlow()
 
+    private val _searchQuery = MutableStateFlow("")
+    /**
+     * Persistent search query for the search screen.
+     */
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+
+    private val _searchLanguage = MutableStateFlow("")
+    /**
+     * Persistent search language filter for the search screen.
+     */
+    val searchLanguage: StateFlow<String> = _searchLanguage.asStateFlow()
+
     private val json = Json { ignoreUnknownKeys = true }
 
     private var homeJob: Job? = null
@@ -86,10 +98,35 @@ class GithubViewModel(application: Application) : AndroidViewModel(application) 
                     loadUserProfile(nonNullToken, isInitialLoad = true)
                 } ?: run {
                     _userState.value = UserState.Anonymous
+                    clearSearchState() // Clear search when logging out or clearing token
                     loadPopularRepos(isInitialLoad = true)
                 }
             }
         }
+    }
+
+    /**
+     * Updates the persistent search query.
+     */
+    fun updateSearchQuery(query: String) {
+        _searchQuery.value = query
+    }
+
+    /**
+     * Updates the persistent search language.
+     */
+    fun updateSearchLanguage(language: String) {
+        _searchLanguage.value = language
+    }
+
+    /**
+     * Clears all search-related states.
+     */
+    private fun clearSearchState() {
+        _searchQuery.value = ""
+        _searchLanguage.value = ""
+        _searchRepos.value = emptyList()
+        searchJob?.cancel()
     }
 
     /**
