@@ -3,11 +3,13 @@ package com.example.yijinsgithub.ui.viewmodel
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.yijinsgithub.R
 import com.example.yijinsgithub.common.Constants
+import com.example.yijinsgithub.common.Constants.DEFAULT_PAGE
+import com.example.yijinsgithub.common.Constants.DEFAULT_PER_PAGE
 import com.example.yijinsgithub.data.local.TokenManager
 import com.example.yijinsgithub.data.model.Repo
 import com.example.yijinsgithub.data.model.User
+import com.example.yijinsgithub.data.remote.AuthInterceptor
 import com.example.yijinsgithub.data.remote.GithubService
 import com.example.yijinsgithub.data.repository.GithubRepository
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
@@ -23,6 +25,7 @@ import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
+import retrofit2.HttpException
 import retrofit2.Retrofit
 
 /**
@@ -31,7 +34,7 @@ import retrofit2.Retrofit
 class GithubViewModel @JvmOverloads constructor(
     application: Application,
     private val tokenManager: TokenManager = TokenManager(application),
-    private val repository: GithubRepository = createDefaultRepository()
+    private val repository: GithubRepository = createDefaultRepository(tokenManager)
 ) : AndroidViewModel(application) {
 
     private val _uiState = MutableStateFlow<GithubUiState>(GithubUiState.Idle)
@@ -52,13 +55,25 @@ class GithubViewModel @JvmOverloads constructor(
     private val _searchLanguage = MutableStateFlow("")
     val searchLanguage: StateFlow<String> = _searchLanguage.asStateFlow()
 
+    // Pagination & Loading States
+    private val _isLoadingMore = MutableStateFlow(false)
+    val isLoadingMore: StateFlow<Boolean> = _isLoadingMore.asStateFlow()
+
+    private val _isLastPage = MutableStateFlow(false)
+    val isLastPage: StateFlow<Boolean> = _isLastPage.asStateFlow()
+    
+    private val _isSearchLastPage = MutableStateFlow(false)
+    val isSearchLastPage: StateFlow<Boolean> = _isSearchLastPage.asStateFlow()
+
+    private var homePage = DEFAULT_PAGE
+    private var searchPage = DEFAULT_PAGE
+    
     private var homeJob: Job? = null
     private var searchJob: Job? = null
     private var profileJob: Job? = null
     private var issueJob: Job? = null
 
     init {
-        // Monitor token changes and load user profile or popular repos accordingly
         viewModelScope.launch {
             tokenManager.token.collectLatest { token ->
                 token?.let { nonNullToken ->
@@ -84,60 +99,141 @@ class GithubViewModel @JvmOverloads constructor(
         _searchQuery.value = ""
         _searchLanguage.value = ""
         _searchRepos.value = emptyList()
+        searchPage = DEFAULT_PAGE
+        _isSearchLastPage.value = false
         searchJob?.cancel()
+    }
+
+    fun clearErrorState() {
+        if (_uiState.value is GithubUiState.Error) {
+            _uiState.value = GithubUiState.Idle
+        }
     }
 
     private fun loadPopularRepos(isInitialLoad: Boolean = false) {
         homeJob?.cancel()
+        homePage = DEFAULT_PAGE
+        _isLastPage.value = false
         homeJob = viewModelScope.launch {
             _uiState.value = if (isInitialLoad) GithubUiState.Loading else GithubUiState.Refreshing
             try {
-                _homeRepos.value = repository.getPopularRepositories()
+                val results = repository.getPopularRepositories(page = homePage)
+                _homeRepos.value = results
+                _isLastPage.value = results.size < DEFAULT_PER_PAGE
                 _uiState.value = GithubUiState.Success
             } catch (e: Exception) {
-                if (e is CancellationException) return@launch
-                _uiState.value = GithubUiState.Error(
-                    e.message ?: getApplication<Application>().getString(R.string.error_unknown)
-                )
+                handleError(e)
+            }
+        }
+    }
+
+    fun loadMoreHomeRepos() {
+        if (_isLoadingMore.value || _isLastPage.value || _uiState.value is GithubUiState.Loading) return
+        
+        _isLoadingMore.value = true
+        homePage++
+        
+        viewModelScope.launch {
+            try {
+                val currentUserState = _userState.value
+                val newRepos = if (currentUserState is UserState.Authenticated) {
+                    repository.getUserRepositories(currentUserState.token, page = homePage)
+                } else {
+                    repository.getPopularRepositories(page = homePage)
+                }
+                
+                if (newRepos.isNotEmpty()) {
+                    _homeRepos.value = _homeRepos.value + newRepos
+                }
+                _isLastPage.value = newRepos.size < DEFAULT_PER_PAGE
+            } catch (e: Exception) {
+                homePage--
+                handleError(e, isPagination = true)
+            } finally {
+                _isLoadingMore.value = false
             }
         }
     }
 
     fun searchRepos(query: String, language: String?, isRefresh: Boolean = false) {
         searchJob?.cancel()
+        searchPage = DEFAULT_PAGE
+        _isSearchLastPage.value = false
         searchJob = viewModelScope.launch {
             _uiState.value = if (isRefresh) GithubUiState.Refreshing else GithubUiState.Loading
             try {
-                _searchRepos.value = repository.searchRepositories(query, language)
+                val results = repository.searchRepositories(query, language, page = searchPage)
+                _searchRepos.value = results
+                _isSearchLastPage.value = results.size < DEFAULT_PER_PAGE
                 _uiState.value = GithubUiState.Success
             } catch (e: Exception) {
-                if (e is CancellationException) return@launch
-                _uiState.value = GithubUiState.Error(
-                    e.message ?: getApplication<Application>().getString(R.string.error_search_failed)
-                )
+                handleError(e)
+            }
+        }
+    }
+
+    fun loadMoreSearchRepos() {
+        if (_isLoadingMore.value || _isSearchLastPage.value || _uiState.value is GithubUiState.Loading) return
+        
+        val query = _searchQuery.value
+        if (query.isBlank()) return
+
+        _isLoadingMore.value = true
+        searchPage++
+        
+        viewModelScope.launch {
+            try {
+                val newRepos = repository.searchRepositories(query, _searchLanguage.value, page = searchPage)
+                if (newRepos.isNotEmpty()) {
+                    _searchRepos.value = _searchRepos.value + newRepos
+                }
+                _isSearchLastPage.value = newRepos.size < DEFAULT_PER_PAGE
+            } catch (e: Exception) {
+                searchPage--
+                handleError(e, isPagination = true)
+            } finally {
+                _isLoadingMore.value = false
             }
         }
     }
 
     private fun loadUserProfile(token: String, isInitialLoad: Boolean = false) {
         profileJob?.cancel()
+        homePage = DEFAULT_PAGE
+        _isLastPage.value = false
         profileJob = viewModelScope.launch {
             _uiState.value = if (isInitialLoad) GithubUiState.Loading else GithubUiState.Refreshing
             try {
                 val user = repository.getCurrentUser(token)
-                val userRepos = repository.getUserRepositories(token)
+                val userRepos = repository.getUserRepositories(token, page = homePage)
                 _userState.value = UserState.Authenticated(user, token, userRepos)
                 _homeRepos.value = userRepos
+                _isLastPage.value = userRepos.size < DEFAULT_PER_PAGE
                 _uiState.value = GithubUiState.Success
             } catch (e: Exception) {
                 if (e is CancellationException) return@launch
                 _userState.value = UserState.Anonymous
                 tokenManager.clearToken()
-                _uiState.value = GithubUiState.Error(
-                    e.message ?: getApplication<Application>().getString(R.string.error_unknown)
-                )
+                handleError(e)
             }
         }
+    }
+
+    private fun handleError(e: Exception, isPagination: Boolean = false) {
+        if (e is CancellationException) return
+        
+        val message = when (e) {
+            is HttpException -> {
+                when (e.code()) {
+                    403 -> "API Rate limit exceeded. Please try login to increase limit."
+                    401 -> "Unauthorized. Please check your token."
+                    else -> "Network Error: ${e.code()}"
+                }
+            }
+            else -> e.message ?: "Unknown Error"
+        }
+        
+        _uiState.value = GithubUiState.Error(message)
     }
 
     fun login(token: String) {
@@ -174,11 +270,7 @@ class GithubViewModel @JvmOverloads constructor(
                     repository.createIssue(currentUserState.token, owner, repo, title, body)
                     loadUserProfile(currentUserState.token, isInitialLoad = false)
                 } catch (e: Exception) {
-                    if (e is CancellationException) return@launch
-                    val errorMsg = getApplication<Application>().getString(
-                        R.string.error_create_issue_failed, e.message ?: ""
-                    )
-                    _uiState.value = GithubUiState.Error(errorMsg)
+                    handleError(e)
                 }
             }
         }
@@ -186,26 +278,12 @@ class GithubViewModel @JvmOverloads constructor(
 
     fun cancelHome() {
         homeJob?.cancel()
-        val currentState = _uiState.value
-        if (currentState is GithubUiState.Loading || currentState is GithubUiState.Refreshing) {
-            _uiState.value = GithubUiState.Idle
-        }
+        if (_uiState.value is GithubUiState.Loading) _uiState.value = GithubUiState.Idle
     }
 
     fun cancelSearch() {
         searchJob?.cancel()
-        if (_uiState.value is GithubUiState.Loading || _uiState.value is GithubUiState.Refreshing) {
-            _uiState.value = GithubUiState.Idle
-        }
-    }
-
-    fun cancelProfile() {
-        profileJob?.cancel()
-        issueJob?.cancel()
-        val currentState = _uiState.value
-        if (currentState is GithubUiState.Loading || currentState is GithubUiState.Refreshing) {
-            _uiState.value = GithubUiState.Idle
-        }
+        if (_uiState.value is GithubUiState.Loading) _uiState.value = GithubUiState.Idle
     }
 
     private fun cancelAllJobs() {
@@ -216,12 +294,16 @@ class GithubViewModel @JvmOverloads constructor(
     }
 
     companion object {
-        private fun createDefaultRepository(): GithubRepository {
+        private fun createDefaultRepository(tokenManager: TokenManager): GithubRepository {
             val json = Json { ignoreUnknownKeys = true }
             val logging = HttpLoggingInterceptor().apply {
                 level = HttpLoggingInterceptor.Level.BODY
             }
-            val client = OkHttpClient.Builder().addInterceptor(logging).build()
+            val authInterceptor = AuthInterceptor(tokenManager)
+            val client = OkHttpClient.Builder()
+                .addInterceptor(logging)
+                .addInterceptor(authInterceptor)
+                .build()
             val retrofit = Retrofit.Builder()
                 .baseUrl(Constants.GITHUB_BASE_URL)
                 .client(client)

@@ -1,9 +1,8 @@
 package com.example.yijinsgithub.ui.screens
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Search
@@ -12,10 +11,8 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.zIndex
 import com.example.yijinsgithub.R
 import com.example.yijinsgithub.data.model.Repo
 import com.example.yijinsgithub.ui.components.RepoList
@@ -26,16 +23,6 @@ import com.example.yijinsgithub.ui.viewmodel.UserState
 /**
  * The main screen of the application that displays a list of popular repositories
  * or user-specific repositories if authenticated.
- *
- * @param uiState The current UI state from the ViewModel.
- * @param userState The current user authentication state.
- * @param homeRepos The list of repositories (recommended or user's) to display.
- * @param onSearchClick Callback when the search icon is clicked.
- * @param onProfileClick Callback when the profile button is clicked.
- * @param onLogin Callback when a user attempts to log in with a PAT.
- * @param onRefresh Callback when the user triggers a refresh action.
- * @param onRepoClick Callback when a repository item is clicked.
- * @param onDispose Callback to clean up resources when leaving the screen.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,25 +30,25 @@ fun HomeScreen(
     uiState: GithubUiState,
     userState: UserState,
     homeRepos: List<Repo>,
+    isLoadingMore: Boolean,
+    isLastPage: Boolean,
+    listState: LazyListState = rememberLazyListState(),
     onSearchClick: () -> Unit,
     onProfileClick: () -> Unit,
     onLogin: (String) -> Unit,
     onRefresh: () -> Unit,
+    onLoadMore: () -> Unit,
     onRepoClick: (Repo) -> Unit,
     onDispose: () -> Unit = {}
 ) {
-    // Cancel async work when leaving the screen
     DisposableEffect(Unit) {
-        onDispose {
-            onDispose()
-        }
+        onDispose { onDispose() }
     }
 
-    // Capture state into local variables for stable smart casting
     val currentUiState = uiState
     val currentUserState = userState
-    val isLoading = currentUiState is GithubUiState.Loading
-    val isRefreshing = currentUiState is GithubUiState.Refreshing
+    // Show pull-to-refresh indicator for both initial loading and manual refreshing
+    val isRefreshing = currentUiState is GithubUiState.Loading || currentUiState is GithubUiState.Refreshing
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
@@ -69,14 +56,14 @@ fun HomeScreen(
                 TopAppBar(
                     title = { Text(stringResource(R.string.home_title)) },
                     actions = {
-                        IconButton(onClick = onSearchClick, enabled = !isLoading) {
+                        IconButton(onClick = onSearchClick) {
                             Icon(
                                 Icons.Default.Search,
                                 contentDescription = stringResource(R.string.search_content_description)
                             )
                         }
                         (currentUserState as? UserState.Authenticated)?.let {
-                            TextButton(onClick = onProfileClick, enabled = !isLoading) {
+                            TextButton(onClick = onProfileClick) {
                                 Text(stringResource(R.string.profile_button))
                             }
                         }
@@ -99,7 +86,7 @@ fun HomeScreen(
 
                 when (currentUserState) {
                     is UserState.Anonymous -> {
-                        LoginSection(onLogin = onLogin, isLoading = isLoading)
+                        LoginSection(onLogin = onLogin, isLoading = currentUiState is GithubUiState.Loading)
                     }
 
                     is UserState.Authenticated -> {
@@ -113,39 +100,19 @@ fun HomeScreen(
 
                 RepoList(
                     repos = homeRepos,
+                    listState = listState,
                     isRefreshing = isRefreshing,
+                    isLoadingMore = isLoadingMore,
+                    isLastPage = isLastPage,
                     onRefresh = onRefresh,
+                    onLoadMore = onLoadMore,
                     onRepoClick = onRepoClick
                 )
-            }
-        }
-
-        // Full screen loading overlay
-        if (isLoading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.5f))
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = {}
-                    )
-                    .zIndex(10f),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator(color = Color.White)
             }
         }
     }
 }
 
-/**
- * A section on the home screen that allows anonymous users to log in using a GitHub PAT.
- *
- * @param onLogin Callback when the login button is clicked.
- * @param isLoading Whether a login operation is currently in progress.
- */
 @Composable
 fun LoginSection(onLogin: (String) -> Unit, isLoading: Boolean) {
     var token by rememberSaveable { mutableStateOf("") }

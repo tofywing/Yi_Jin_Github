@@ -16,4 +16,10 @@ object Constants {
     const val AUTH_HEADER_KEY = "Authorization"
     const val AUTH_TOKEN_PREFIX = "token "
     const val BLANK_PAGE = "about:blank"
+
+    // Pagination
+    const val DEFAULT_PER_PAGE = 20
+    const val DEFAULT_PAGE = 1
+    const val DEFAULT_SORT = "stars"
+    const val DEFAULT_ORDER = "desc"
 }

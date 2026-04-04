@@ -6,8 +6,10 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -25,9 +27,6 @@ import com.example.yijinsgithub.ui.screens.RepoDetailScreen
 import com.example.yijinsgithub.ui.theme.YiJinsGithubTheme
 import com.example.yijinsgithub.ui.navigation.Screen
 
-/**
- * The main entry point of the application.
- */
 class GithubActivity : ComponentActivity() {
     private val viewModel: GithubViewModel by viewModels()
 
@@ -38,6 +37,12 @@ class GithubActivity : ComponentActivity() {
         setContent {
             YiJinsGithubTheme {
                 val navController = rememberNavController()
+                
+                // Use rememberLazyListState at this level to survive navigation between screens
+                // and keep them alive as long as the Activity/ViewModel is alive.
+                val homeListState = rememberLazyListState()
+                val searchListState = rememberLazyListState()
+
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
@@ -47,15 +52,25 @@ class GithubActivity : ComponentActivity() {
                             val homeRepos by viewModel.homeRepos.collectAsState()
                             val uiState by viewModel.uiState.collectAsState()
                             val userState by viewModel.userState.collectAsState()
+                            val isLoadingMore by viewModel.isLoadingMore.collectAsState()
+                            val isLastPage by viewModel.isLastPage.collectAsState()
+
+                            LaunchedEffect(Unit) {
+                                viewModel.clearErrorState()
+                            }
 
                             HomeScreen(
                                 uiState = uiState,
                                 userState = userState,
                                 homeRepos = homeRepos,
+                                isLoadingMore = isLoadingMore,
+                                isLastPage = isLastPage,
+                                listState = homeListState,
                                 onSearchClick = { navController.navigate(Screen.Search.route) },
                                 onProfileClick = { navController.navigate(Screen.Profile.route) },
                                 onLogin = { viewModel.login(it) },
                                 onRefresh = { viewModel.refresh() },
+                                onLoadMore = { viewModel.loadMoreHomeRepos() },
                                 onRepoClick = { repo ->
                                     navController.navigate(Screen.RepoDetail.createRoute(repo.htmlUrl))
                                 }
@@ -66,15 +81,25 @@ class GithubActivity : ComponentActivity() {
                             val uiState by viewModel.uiState.collectAsState()
                             val searchQuery by viewModel.searchQuery.collectAsState()
                             val searchLanguage by viewModel.searchLanguage.collectAsState()
+                            val isLoadingMore by viewModel.isLoadingMore.collectAsState()
+                            val isLastPage by viewModel.isSearchLastPage.collectAsState()
+
+                            LaunchedEffect(Unit) {
+                                viewModel.clearErrorState()
+                            }
 
                             SearchScreen(
                                 uiState = uiState,
                                 repos = searchRepos,
                                 query = searchQuery,
                                 language = searchLanguage,
+                                isLoadingMore = isLoadingMore,
+                                isLastPage = isLastPage,
+                                listState = searchListState,
                                 onQueryChange = { viewModel.updateSearchQuery(it) },
                                 onLanguageChange = { viewModel.updateSearchLanguage(it) },
                                 onSearch = { q, l, r -> viewModel.searchRepos(q, l, r) },
+                                onLoadMore = { viewModel.loadMoreSearchRepos() },
                                 onRepoClick = { repo ->
                                     navController.navigate(Screen.RepoDetail.createRoute(repo.htmlUrl))
                                 }
@@ -83,6 +108,10 @@ class GithubActivity : ComponentActivity() {
                         composable(Screen.Profile.route) {
                             val userState by viewModel.userState.collectAsState()
                             val uiState by viewModel.uiState.collectAsState()
+
+                            LaunchedEffect(Unit) {
+                                viewModel.clearErrorState()
+                            }
 
                             ProfileScreen(
                                 uiState = uiState,

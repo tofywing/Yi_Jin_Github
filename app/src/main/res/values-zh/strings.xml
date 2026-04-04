@@ -1,0 +1,49 @@
+<resources>
+    <string name="app_name">Yi Jin 的 Github</string>
+    <string name="home_title">GitHub 探索</string>
+    <string name="search_content_description">搜索</string>
+    <string name="profile_button">个人资料</string>
+    <string name="welcome_message">欢迎回来，%1$s!</string>
+    <string name="auth_required_title">需要身份验证</string>
+    <string name="auth_required_desc">GitHub API 已弃用密码登录。请使用具有 \'repo\' 权限的个人访问令牌 (PAT) 进行登录并创建 Issue。</string>
+    <string name="pat_label">个人访问令牌 (PAT)</string>
+    <string name="pat_placeholder">ghp_xxxxxxxxxxxx</string>
+    <string name="login_button">使用令牌登录</string>
+
+    <!-- 搜索界面 -->
+    <string name="search_title">搜索仓库</string>
+    <string name="search_keywords_label">搜索关键词</string>
+    <string name="search_language_label">语言 (例如 Kotlin)</string>
+    <string name="search_button">搜索 GitHub</string>
+
+    <!-- 个人中心 -->
+    <string name="profile_title">我的资料</string>
+    <string name="logout_content_description">退出登录</string>
+    <string name="create_issue_content_description">新建 Issue</string>
+    <string name="my_repositories_header">我的仓库</string>
+    <string name="label_followers">关注者</string>
+    <string name="label_following">正在关注</string>
+    <string name="label_repos">仓库</string>
+
+    <!-- 仓库详情 -->
+    <string name="repo_detail_title">仓库详情</string>
+    <string name="back_button_desc">返回</string>
+
+    <!-- Issue 对话框 -->
+    <string name="create_issue_dialog_title">创建新 Issue</string>
+    <string name="target_repository_label">目标仓库:</string>
+    <string name="issue_title_label">标题</string>
+    <string name="issue_description_label">描述 (可选)</string>
+    <string name="submit_issue_button">提交 Issue</string>
+    <string name="cancel_button">取消</string>
+    <string name="issue_created_success">Issue 创建成功！</string>
+
+    <!-- 组件 -->
+    <string name="repo_owner_avatar_desc">所有者头像</string>
+    <string name="reached_bottom">您已滑到底部！</string>
+
+    <!-- 错误信息 -->
+    <string name="error_unknown">未知错误</string>
+    <string name="error_search_failed">搜索失败</string>
+    <string name="error_create_issue_failed">创建 Issue 失败: %1$s</string>
+</resources>

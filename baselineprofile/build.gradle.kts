@@ -9,7 +9,7 @@ android {
 
     defaultConfig {
         minSdk = 29
-        targetSdk = 35
+        targetSdk = 36
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -17,22 +17,15 @@ android {
     targetProjectPath = ":app"
 
     buildTypes {
-        // The release build type is not created by default for 'com.android.test' modules.
         create("release") {
             signingConfig = signingConfigs.getByName("debug")
             matchingFallbacks += listOf("release")
         }
-
-        create("benchmark") {
-            initWith(getByName("release"))
-            matchingFallbacks += listOf("release")
-            isDebuggable = false
-        }
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 }
 
