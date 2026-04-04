@@ -1,0 +1,49 @@
+<resources>
+    <string name="app_name">Yi Jin\'s Github</string>
+    <string name="home_title">GitHub Explorer</string>
+    <string name="search_content_description">Search</string>
+    <string name="profile_button">Profile</string>
+    <string name="welcome_message">Welcome, %1$s!</string>
+    <string name="auth_required_title">Authentication Required</string>
+    <string name="auth_required_desc">GitHub API has deprecated password login. Please use a Personal Access Token (PAT) with \'repo\' scope to login and create issues.</string>
+    <string name="pat_label">Personal Access Token</string>
+    <string name="pat_placeholder">ghp_xxxxxxxxxxxx</string>
+    <string name="login_button">Login with Token</string>
+
+    <!-- Search Screen -->
+    <string name="search_title">Search Repositories</string>
+    <string name="search_keywords_label">Search Keywords</string>
+    <string name="search_language_label">Language (e.g. Kotlin)</string>
+    <string name="search_button">Search GitHub</string>
+
+    <!-- Profile Screen -->
+    <string name="profile_title">My Profile</string>
+    <string name="logout_content_description">Logout</string>
+    <string name="create_issue_content_description">New Issue</string>
+    <string name="my_repositories_header">My Repositories</string>
+    <string name="label_followers">Followers</string>
+    <string name="label_following">Following</string>
+    <string name="label_repos">Repos</string>
+
+    <!-- Repo Detail Screen -->
+    <string name="repo_detail_title">Repository Detail</string>
+    <string name="back_button_desc">Back</string>
+
+    <!-- Issue Dialog -->
+    <string name="create_issue_dialog_title">Create New Issue</string>
+    <string name="target_repository_label">Target Repository:</string>
+    <string name="issue_title_label">Title</string>
+    <string name="issue_description_label">Description (Optional)</string>
+    <string name="submit_issue_button">Submit Issue</string>
+    <string name="cancel_button">Cancel</string>
+    <string name="issue_created_success">Issue created successfully!</string>
+
+    <!-- Components -->
+    <string name="repo_owner_avatar_desc">Owner Avatar</string>
+    <string name="reached_bottom">You\'ve reached the end!</string>
+
+    <!-- Error Messages -->
+    <string name="error_unknown">Unknown Error</string>
+    <string name="error_search_failed">Search failed</string>
+    <string name="error_create_issue_failed">Failed to create issue: %1$s</string>
+</resources>
