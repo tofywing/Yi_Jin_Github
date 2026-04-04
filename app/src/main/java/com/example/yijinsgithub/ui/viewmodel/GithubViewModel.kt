@@ -27,51 +27,30 @@ import retrofit2.Retrofit
 
 /**
  * ViewModel responsible for managing the state and business logic of the GitHub application.
- * It handles authentication, repository searching, profile loading, and issue creation.
- *
- * @param application The application context.
  */
-class GithubViewModel(application: Application) : AndroidViewModel(application) {
-    private val tokenManager = TokenManager(application)
-    private val repository: GithubRepository
+class GithubViewModel @JvmOverloads constructor(
+    application: Application,
+    private val tokenManager: TokenManager = TokenManager(application),
+    private val repository: GithubRepository = createDefaultRepository()
+) : AndroidViewModel(application) {
 
     private val _uiState = MutableStateFlow<GithubUiState>(GithubUiState.Idle)
-    /**
-     * Observable state representing the current UI status (Loading, Success, Error, etc.).
-     */
     val uiState: StateFlow<GithubUiState> = _uiState.asStateFlow()
 
     private val _userState = MutableStateFlow<UserState>(UserState.Anonymous)
-    /**
-     * Observable state representing the current user's authentication status and data.
-     */
     val userState: StateFlow<UserState> = _userState.asStateFlow()
 
     private val _homeRepos = MutableStateFlow<List<Repo>>(emptyList())
-    /**
-     * Observable state representing the list of repositories for the Home screen.
-     */
     val homeRepos: StateFlow<List<Repo>> = _homeRepos.asStateFlow()
 
     private val _searchRepos = MutableStateFlow<List<Repo>>(emptyList())
-    /**
-     * Observable state representing the list of repositories for the Search screen.
-     */
     val searchRepos: StateFlow<List<Repo>> = _searchRepos.asStateFlow()
 
     private val _searchQuery = MutableStateFlow("")
-    /**
-     * Persistent search query for the search screen.
-     */
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
     private val _searchLanguage = MutableStateFlow("")
-    /**
-     * Persistent search language filter for the search screen.
-     */
     val searchLanguage: StateFlow<String> = _searchLanguage.asStateFlow()
-
-    private val json = Json { ignoreUnknownKeys = true }
 
     private var homeJob: Job? = null
     private var searchJob: Job? = null
@@ -79,18 +58,6 @@ class GithubViewModel(application: Application) : AndroidViewModel(application) 
     private var issueJob: Job? = null
 
     init {
-        val logging = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
-        }
-        val client = OkHttpClient.Builder().addInterceptor(logging).build()
-
-        val retrofit = Retrofit.Builder().baseUrl(Constants.GITHUB_BASE_URL).client(client)
-            .addConverterFactory(json.asConverterFactory(Constants.MEDIA_TYPE_JSON.toMediaType()))
-            .build()
-
-        val service = retrofit.create(GithubService::class.java)
-        repository = GithubRepository(service)
-
         // Monitor token changes and load user profile or popular repos accordingly
         viewModelScope.launch {
             tokenManager.token.collectLatest { token ->
@@ -98,30 +65,21 @@ class GithubViewModel(application: Application) : AndroidViewModel(application) 
                     loadUserProfile(nonNullToken, isInitialLoad = true)
                 } ?: run {
                     _userState.value = UserState.Anonymous
-                    clearSearchState() // Clear search when logging out or clearing token
+                    clearSearchState()
                     loadPopularRepos(isInitialLoad = true)
                 }
             }
         }
     }
 
-    /**
-     * Updates the persistent search query.
-     */
     fun updateSearchQuery(query: String) {
         _searchQuery.value = query
     }
 
-    /**
-     * Updates the persistent search language.
-     */
     fun updateSearchLanguage(language: String) {
         _searchLanguage.value = language
     }
 
-    /**
-     * Clears all search-related states.
-     */
     private fun clearSearchState() {
         _searchQuery.value = ""
         _searchLanguage.value = ""
@@ -129,11 +87,6 @@ class GithubViewModel(application: Application) : AndroidViewModel(application) 
         searchJob?.cancel()
     }
 
-    /**
-     * Loads a list of popular repositories from GitHub.
-     *
-     * @param isInitialLoad Whether this is the first time data is being loaded for the screen.
-     */
     private fun loadPopularRepos(isInitialLoad: Boolean = false) {
         homeJob?.cancel()
         homeJob = viewModelScope.launch {
@@ -150,13 +103,6 @@ class GithubViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    /**
-     * Searches for repositories based on keywords and an optional language.
-     *
-     * @param query The search keywords.
-     * @param language The optional programming language filter.
-     * @param isRefresh Whether this is a refresh operation (triggered by pull-to-refresh).
-     */
     fun searchRepos(query: String, language: String?, isRefresh: Boolean = false) {
         searchJob?.cancel()
         searchJob = viewModelScope.launch {
@@ -173,12 +119,6 @@ class GithubViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    /**
-     * Loads the profile and repositories for the authenticated user.
-     *
-     * @param token The GitHub Personal Access Token.
-     * @param isInitialLoad Whether this is the first time data is being loaded for the screen.
-     */
     private fun loadUserProfile(token: String, isInitialLoad: Boolean = false) {
         profileJob?.cancel()
         profileJob = viewModelScope.launch {
@@ -200,11 +140,6 @@ class GithubViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    /**
-     * Attempts to log in by saving the provided PAT.
-     *
-     * @param token The raw GitHub Personal Access Token.
-     */
     fun login(token: String) {
         viewModelScope.launch {
             _uiState.value = GithubUiState.Loading
@@ -212,9 +147,6 @@ class GithubViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    /**
-     * Logs out the user by clearing the stored token and cancelling active jobs.
-     */
     fun logout() {
         cancelAllJobs()
         viewModelScope.launch {
@@ -222,9 +154,6 @@ class GithubViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    /**
-     * Refreshes the data based on the current authentication status.
-     */
     fun refresh() {
         viewModelScope.launch {
             tokenManager.token.firstOrNull()?.let { currentToken ->
@@ -235,14 +164,6 @@ class GithubViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    /**
-     * Creates a new issue in a specific repository.
-     *
-     * @param owner The owner of the repository.
-     * @param repo The name of the repository.
-     * @param title The title of the issue.
-     * @param body The body text of the issue.
-     */
     fun createIssue(owner: String, repo: String, title: String, body: String) {
         val currentUserState = _userState.value
         if (currentUserState is UserState.Authenticated) {
@@ -263,9 +184,6 @@ class GithubViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    /**
-     * Cancels any active jobs related to the home screen.
-     */
     fun cancelHome() {
         homeJob?.cancel()
         val currentState = _uiState.value
@@ -274,9 +192,6 @@ class GithubViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    /**
-     * Cancels any active jobs related to the search screen.
-     */
     fun cancelSearch() {
         searchJob?.cancel()
         if (_uiState.value is GithubUiState.Loading || _uiState.value is GithubUiState.Refreshing) {
@@ -284,9 +199,6 @@ class GithubViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    /**
-     * Cancels any active jobs related to the profile screen.
-     */
     fun cancelProfile() {
         profileJob?.cancel()
         issueJob?.cancel()
@@ -296,39 +208,40 @@ class GithubViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    /**
-     * Cancels all active background jobs.
-     */
     private fun cancelAllJobs() {
         homeJob?.cancel()
         searchJob?.cancel()
         profileJob?.cancel()
         issueJob?.cancel()
     }
+
+    companion object {
+        private fun createDefaultRepository(): GithubRepository {
+            val json = Json { ignoreUnknownKeys = true }
+            val logging = HttpLoggingInterceptor().apply {
+                level = HttpLoggingInterceptor.Level.BODY
+            }
+            val client = OkHttpClient.Builder().addInterceptor(logging).build()
+            val retrofit = Retrofit.Builder()
+                .baseUrl(Constants.GITHUB_BASE_URL)
+                .client(client)
+                .addConverterFactory(json.asConverterFactory(Constants.MEDIA_TYPE_JSON.toMediaType()))
+                .build()
+            val service = retrofit.create(GithubService::class.java)
+            return GithubRepository(service)
+        }
+    }
 }
 
-/**
- * Represents the state of the UI for the GitHub application.
- */
 sealed class GithubUiState {
-    /** Idle state when no operation is in progress. */
     object Idle : GithubUiState()
-    /** Loading state for full-screen operations (login, initial load, search). */
     object Loading : GithubUiState()
-    /** Refreshing state specifically for pull-to-refresh operations. */
     object Refreshing : GithubUiState()
-    /** Success state when an operation completes successfully. */
     object Success : GithubUiState()
-    /** Error state containing an error message. */
     data class Error(val message: String) : GithubUiState()
 }
 
-/**
- * Represents the user's authentication and data state.
- */
 sealed class UserState {
-    /** Anonymous state when no user is logged in. */
     object Anonymous : UserState()
-    /** Authenticated state containing user profile, token, and repositories. */
     data class Authenticated(val user: User, val token: String, val repos: List<Repo>) : UserState()
 }

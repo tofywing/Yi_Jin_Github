@@ -57,9 +57,11 @@ fun HomeScreen(
         }
     }
 
-    // 状态拆解
-    val isLoading = uiState is GithubUiState.Loading
-    val isRefreshing = uiState is GithubUiState.Refreshing
+    // Capture state into local variables for stable smart casting
+    val currentUiState = uiState
+    val currentUserState = userState
+    val isLoading = currentUiState is GithubUiState.Loading
+    val isRefreshing = currentUiState is GithubUiState.Refreshing
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
@@ -73,7 +75,7 @@ fun HomeScreen(
                                 contentDescription = stringResource(R.string.search_content_description)
                             )
                         }
-                        (userState as? UserState.Authenticated)?.let {
+                        (currentUserState as? UserState.Authenticated)?.let {
                             TextButton(onClick = onProfileClick, enabled = !isLoading) {
                                 Text(stringResource(R.string.profile_button))
                             }
@@ -87,7 +89,6 @@ fun HomeScreen(
                     .padding(padding)
                     .fillMaxSize()
             ) {
-                val currentUiState = uiState
                 if (currentUiState is GithubUiState.Error) {
                     Text(
                         text = currentUiState.message,
@@ -96,10 +97,11 @@ fun HomeScreen(
                     )
                 }
 
-                when (val currentUserState = userState) {
+                when (currentUserState) {
                     is UserState.Anonymous -> {
                         LoginSection(onLogin = onLogin, isLoading = isLoading)
                     }
+
                     is UserState.Authenticated -> {
                         Text(
                             text = stringResource(R.string.welcome_message, currentUserState.user.login),
@@ -118,7 +120,7 @@ fun HomeScreen(
             }
         }
 
-        // 全屏加载遮罩
+        // Full screen loading overlay
         if (isLoading) {
             Box(
                 modifier = Modifier
