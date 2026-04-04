@@ -26,10 +26,13 @@ class HomeScreenUiTest {
                     uiState = GithubUiState.Idle,
                     userState = UserState.Anonymous,
                     homeRepos = emptyList(),
+                    isLoadingMore = false,
+                    isLastPage = true,
                     onSearchClick = {},
                     onProfileClick = {},
                     onLogin = {},
                     onRefresh = {},
+                    onLoadMore = {},
                     onRepoClick = {}
                 )
             }
@@ -43,7 +46,7 @@ class HomeScreenUiTest {
     @Test
     fun testWelcomeMessageIsDisplayedWhenAuthenticated() {
         val user = com.example.yijinsgithub.data.model.User(
-            login = "johndoe",
+            login = "yi",
             id = 123L,
             avatarUrl = "",
             htmlUrl = ""
@@ -55,15 +58,18 @@ class HomeScreenUiTest {
                     uiState = GithubUiState.Idle,
                     userState = UserState.Authenticated(user, "token", emptyList()),
                     homeRepos = emptyList(),
+                    isLoadingMore = false,
+                    isLastPage = true,
                     onSearchClick = {},
                     onProfileClick = {},
                     onLogin = {},
                     onRefresh = {},
+                    onLoadMore = {},
                     onRepoClick = {}
                 )
             }
         }
 
-        composeTestRule.onNodeWithText("Welcome, johndoe!").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Welcome, Yi!").assertIsDisplayed()
     }
 }

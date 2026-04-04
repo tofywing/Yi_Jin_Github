@@ -12,7 +12,6 @@ import com.example.yijinsgithub.data.model.User
 import com.example.yijinsgithub.data.remote.AuthInterceptor
 import com.example.yijinsgithub.data.remote.GithubService
 import com.example.yijinsgithub.data.repository.GithubRepository
-import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,6 +26,7 @@ import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.HttpException
 import retrofit2.Retrofit
+import retrofit2.converter.kotlinx.serialization.asConverterFactory
 
 /**
  * ViewModel responsible for managing the state and business logic of the GitHub application.
