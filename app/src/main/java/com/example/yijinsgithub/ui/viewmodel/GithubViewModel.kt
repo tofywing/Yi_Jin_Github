@@ -47,11 +47,17 @@ class GithubViewModel(application: Application) : AndroidViewModel(application) 
      */
     val userState: StateFlow<UserState> = _userState.asStateFlow()
 
-    private val _repos = MutableStateFlow<List<Repo>>(emptyList())
+    private val _homeRepos = MutableStateFlow<List<Repo>>(emptyList())
     /**
-     * Observable state representing the current list of repositories to display.
+     * Observable state representing the list of repositories for the Home screen.
      */
-    val repos: StateFlow<List<Repo>> = _repos.asStateFlow()
+    val homeRepos: StateFlow<List<Repo>> = _homeRepos.asStateFlow()
+
+    private val _searchRepos = MutableStateFlow<List<Repo>>(emptyList())
+    /**
+     * Observable state representing the list of repositories for the Search screen.
+     */
+    val searchRepos: StateFlow<List<Repo>> = _searchRepos.asStateFlow()
 
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -96,7 +102,7 @@ class GithubViewModel(application: Application) : AndroidViewModel(application) 
         homeJob = viewModelScope.launch {
             _uiState.value = if (isInitialLoad) GithubUiState.Loading else GithubUiState.Refreshing
             try {
-                _repos.value = repository.getPopularRepositories()
+                _homeRepos.value = repository.getPopularRepositories()
                 _uiState.value = GithubUiState.Success
             } catch (e: Exception) {
                 if (e is CancellationException) return@launch
@@ -112,13 +118,14 @@ class GithubViewModel(application: Application) : AndroidViewModel(application) 
      *
      * @param query The search keywords.
      * @param language The optional programming language filter.
+     * @param isRefresh Whether this is a refresh operation (triggered by pull-to-refresh).
      */
-    fun searchRepos(query: String, language: String?) {
+    fun searchRepos(query: String, language: String?, isRefresh: Boolean = false) {
         searchJob?.cancel()
         searchJob = viewModelScope.launch {
-            _uiState.value = GithubUiState.Loading
+            _uiState.value = if (isRefresh) GithubUiState.Refreshing else GithubUiState.Loading
             try {
-                _repos.value = repository.searchRepositories(query, language)
+                _searchRepos.value = repository.searchRepositories(query, language)
                 _uiState.value = GithubUiState.Success
             } catch (e: Exception) {
                 if (e is CancellationException) return@launch
@@ -143,7 +150,7 @@ class GithubViewModel(application: Application) : AndroidViewModel(application) 
                 val user = repository.getCurrentUser(token)
                 val userRepos = repository.getUserRepositories(token)
                 _userState.value = UserState.Authenticated(user, token, userRepos)
-                _repos.value = userRepos
+                _homeRepos.value = userRepos
                 _uiState.value = GithubUiState.Success
             } catch (e: Exception) {
                 if (e is CancellationException) return@launch
@@ -235,7 +242,7 @@ class GithubViewModel(application: Application) : AndroidViewModel(application) 
      */
     fun cancelSearch() {
         searchJob?.cancel()
-        if (_uiState.value is GithubUiState.Loading) {
+        if (_uiState.value is GithubUiState.Loading || _uiState.value is GithubUiState.Refreshing) {
             _uiState.value = GithubUiState.Idle
         }
     }

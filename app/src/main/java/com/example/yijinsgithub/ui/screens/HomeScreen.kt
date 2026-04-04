@@ -29,7 +29,7 @@ import com.example.yijinsgithub.ui.viewmodel.UserState
  *
  * @param uiState The current UI state from the ViewModel.
  * @param userState The current user authentication state.
- * @param repos The list of repositories to display.
+ * @param homeRepos The list of repositories (recommended or user's) to display.
  * @param onSearchClick Callback when the search icon is clicked.
  * @param onProfileClick Callback when the profile button is clicked.
  * @param onLogin Callback when a user attempts to log in with a PAT.
@@ -42,7 +42,7 @@ import com.example.yijinsgithub.ui.viewmodel.UserState
 fun HomeScreen(
     uiState: GithubUiState,
     userState: UserState,
-    repos: List<Repo>,
+    homeRepos: List<Repo>,
     onSearchClick: () -> Unit,
     onProfileClick: () -> Unit,
     onLogin: (String) -> Unit,
@@ -110,7 +110,7 @@ fun HomeScreen(
                 }
 
                 RepoList(
-                    repos = repos,
+                    repos = homeRepos,
                     isRefreshing = isRefreshing,
                     onRefresh = onRefresh,
                     onRepoClick = onRepoClick

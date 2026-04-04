@@ -53,14 +53,14 @@ class GithubActivity : ComponentActivity() {
                     NavHost(navController = navController, startDestination = Screen.Home.route) {
                         // Home Screen Route
                         composable(Screen.Home.route) {
-                            val repos by viewModel.repos.collectAsState()
+                            val homeRepos by viewModel.homeRepos.collectAsState()
                             val uiState by viewModel.uiState.collectAsState()
                             val userState by viewModel.userState.collectAsState()
 
                             HomeScreen(
                                 uiState = uiState,
                                 userState = userState,
-                                repos = repos,
+                                homeRepos = homeRepos,
                                 onSearchClick = { navController.navigate(Screen.Search.route) },
                                 onProfileClick = { navController.navigate(Screen.Profile.route) },
                                 onLogin = { viewModel.login(it) },
@@ -73,13 +73,13 @@ class GithubActivity : ComponentActivity() {
                         }
                         // Search Screen Route
                         composable(Screen.Search.route) {
-                            val repos by viewModel.repos.collectAsState()
+                            val searchRepos by viewModel.searchRepos.collectAsState()
                             val uiState by viewModel.uiState.collectAsState()
 
                             SearchScreen(
                                 uiState = uiState,
-                                repos = repos,
-                                onSearch = { q, l -> viewModel.searchRepos(q, l) },
+                                repos = searchRepos,
+                                onSearch = { q, l, r -> viewModel.searchRepos(q, l, r) },
                                 onRepoClick = { repo ->
                                     navController.navigate(Screen.RepoDetail.createRoute(repo.htmlUrl))
                                 },

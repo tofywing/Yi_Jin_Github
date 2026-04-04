@@ -7,6 +7,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import com.example.yijinsgithub.R
 import com.example.yijinsgithub.data.model.Repo
@@ -29,7 +30,7 @@ import com.example.yijinsgithub.ui.viewmodel.GithubUiState
 fun SearchScreen(
     uiState: GithubUiState,
     repos: List<Repo>,
-    onSearch: (String, String?) -> Unit,
+    onSearch: (String, String?, Boolean) -> Unit,
     onRepoClick: (Repo) -> Unit,
     onDispose: () -> Unit = {}
 ) {
@@ -44,6 +45,7 @@ fun SearchScreen(
     var language by rememberSaveable { mutableStateOf("") }
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val keyboardController = LocalSoftwareKeyboardController.current
 
     Scaffold(
         topBar = {
@@ -92,7 +94,10 @@ fun SearchScreen(
 
                 Spacer(modifier = Modifier.height(Dimens.SpacerMedium))
                 Button(
-                    onClick = { onSearch(query, language.ifBlank { null }) },
+                    onClick = {
+                        keyboardController?.hide()
+                        onSearch(query, language.ifBlank { null }, false)
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     enabled = query.isNotBlank()
                 ) {
@@ -101,10 +106,6 @@ fun SearchScreen(
             }
 
             val currentUiState = uiState
-            if (currentUiState is GithubUiState.Loading) {
-                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-            }
-
             if (currentUiState is GithubUiState.Error) {
                 Text(
                     text = currentUiState.message,
@@ -115,6 +116,12 @@ fun SearchScreen(
 
             RepoList(
                 repos = repos,
+                isRefreshing = currentUiState is GithubUiState.Loading || currentUiState is GithubUiState.Refreshing,
+                onRefresh = {
+                    if (query.isNotBlank()) {
+                        onSearch(query, language.ifBlank { null }, true)
+                    }
+                },
                 onRepoClick = onRepoClick
             )
         }

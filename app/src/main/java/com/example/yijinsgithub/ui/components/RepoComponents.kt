@@ -19,6 +19,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.yijinsgithub.R
 import com.example.yijinsgithub.data.model.Repo
@@ -62,12 +63,16 @@ fun RepoList(
             state = listState,
             modifier = Modifier.fillMaxSize()
         ) {
-            items(items = repos, key = { it.id }) { repo ->
+            items(
+                items = repos,
+                key = { it.id },
+                contentType = { "repo" }
+            ) { repo ->
                 RepoItem(repo = repo, onClick = { onRepoClick(repo) })
             }
 
             if (repos.isNotEmpty()) {
-                item {
+                item(contentType = "footer") {
                     Text(
                         text = stringResource(id = R.string.reached_bottom),
                         modifier = Modifier
@@ -117,6 +122,14 @@ fun RepoList(
  */
 @Composable
 fun RepoItem(repo: Repo, onClick: () -> Unit) {
+    // 提取静态值，避免重组时重复计算
+    val repoName = repo.fullName
+    val description = repo.description
+    val stars = repo.stars
+    val forks = repo.forks
+    val language = repo.language
+    val avatarUrl = repo.owner.avatarUrl
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -128,7 +141,7 @@ fun RepoItem(repo: Repo, onClick: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             AsyncImage(
-                model = repo.owner.avatarUrl,
+                model = avatarUrl,
                 contentDescription = stringResource(id = R.string.repo_owner_avatar_desc),
                 modifier = Modifier
                     .size(Dimens.AvatarSmall)
@@ -137,11 +150,11 @@ fun RepoItem(repo: Repo, onClick: () -> Unit) {
             Spacer(modifier = Modifier.width(Dimens.SpacerExtraLarge))
             Column {
                 Text(
-                    text = repo.fullName,
+                    text = repoName,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
-                repo.description?.takeIf { it.isNotBlank() }?.let { description ->
+                if (!description.isNullOrBlank()) {
                     Text(
                         text = description,
                         style = MaterialTheme.typography.bodySmall,
@@ -150,10 +163,10 @@ fun RepoItem(repo: Repo, onClick: () -> Unit) {
                 }
                 Spacer(modifier = Modifier.height(Dimens.SpacerSmall))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = "⭐ ${repo.stars}", style = MaterialTheme.typography.labelMedium)
+                    Text(text = "⭐ $stars", style = MaterialTheme.typography.labelMedium)
                     Spacer(modifier = Modifier.width(Dimens.SpacerLarge))
-                    Text(text = "🍴 ${repo.forks}", style = MaterialTheme.typography.labelMedium)
-                    repo.language?.let { language ->
+                    Text(text = "🍴 $forks", style = MaterialTheme.typography.labelMedium)
+                    if (language != null) {
                         Spacer(modifier = Modifier.width(Dimens.SpacerLarge))
                         Text(
                             text = language,
