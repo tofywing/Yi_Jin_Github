@@ -46,10 +46,8 @@ fun HomeScreen(
         onDispose { onDispose() }
     }
 
-    val currentUiState = uiState
-    val currentUserState = userState
     // Show pull-to-refresh indicator for both initial loading and manual refreshing
-    val isRefreshing = currentUiState is GithubUiState.Loading || currentUiState is GithubUiState.Refreshing
+    val isRefreshing = uiState is GithubUiState.Loading || uiState is GithubUiState.Refreshing
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
@@ -63,7 +61,7 @@ fun HomeScreen(
                                 contentDescription = stringResource(R.string.search_content_description)
                             )
                         }
-                        (currentUserState as? UserState.Authenticated)?.let {
+                        (userState as? UserState.Authenticated)?.let {
                             TextButton(onClick = onProfileClick) {
                                 Text(stringResource(R.string.profile_button))
                             }
@@ -77,22 +75,25 @@ fun HomeScreen(
                     .padding(padding)
                     .fillMaxSize()
             ) {
-                if (currentUiState is GithubUiState.Error) {
+                if (uiState is GithubUiState.Error) {
                     Text(
-                        text = currentUiState.message,
+                        text = uiState.message,
                         color = MaterialTheme.colorScheme.error,
                         modifier = Modifier.padding(Dimens.PaddingLarge)
                     )
                 }
 
-                when (currentUserState) {
+                when (userState) {
                     is UserState.Anonymous -> {
-                        LoginSection(onLogin = onLogin, isLoading = currentUiState is GithubUiState.Loading)
+                        LoginSection(
+                            onLogin = onLogin,
+                            isLoading = uiState is GithubUiState.Loading
+                        )
                     }
 
                     is UserState.Authenticated -> {
                         Text(
-                            text = stringResource(R.string.welcome_message, currentUserState.user.login),
+                            text = stringResource(R.string.welcome_message, userState.user.login),
                             modifier = Modifier.padding(Dimens.PaddingLarge),
                             style = MaterialTheme.typography.titleMedium
                         )
