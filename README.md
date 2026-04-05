@@ -1,6 +1,6 @@
-## Github link: https://github.com/tofywing/Yi_Jin_Github
-## Code branch: develop
-## https://github.com/tofywing/Yi_Jin_Github/upload/develop
-## Assignment branch: home_assighment
-## https://github.com/tofywing/Yi_Jin_Github/upload/home_assignment
-## Temp test Github account token (if needed): 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
+- **Github link: https://github.com/tofywing/Yi_Jin_Github
+- **Code branch: develop
+- **https://github.com/tofywing/Yi_Jin_Github/upload/develop
+- **Assignment branch: home_assighment
+- **https://github.com/tofywing/Yi_Jin_Github/upload/home_assignment
+- **Temp test Github account token (if needed): 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
