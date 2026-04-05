@@ -1,6 +1,4 @@
 - release apk
 - Github link: https://github.com/tofywing/Yi_Jin_Github
 - Code branch: develop
-- https://github.com/tofywing/Yi_Jin_Github/upload/develop
 - Assignment branch: home_assighment
-- https://github.com/tofywing/Yi_Jin_Github/upload/home_assignment
