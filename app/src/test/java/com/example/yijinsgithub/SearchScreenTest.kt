@@ -1,5 +1,6 @@
 package com.example.yijinsgithub
 
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
@@ -32,9 +33,13 @@ class SearchScreenTest {
                 repos = emptyList(),
                 query = "kotlin",
                 language = "Kotlin",
+                isLoadingMore = false,
+                isLastPage = false,
+                listState = rememberLazyListState(),
                 onQueryChange = {},
                 onLanguageChange = {},
                 onSearch = onSearchMock,
+                onLoadMore = {},
                 onRepoClick = {}
             )
         }
@@ -52,9 +57,13 @@ class SearchScreenTest {
                 repos = emptyList(),
                 query = "kotlin",
                 language = "",
+                isLoadingMore = false,
+                isLastPage = false,
+                listState = rememberLazyListState(),
                 onQueryChange = {},
                 onLanguageChange = {},
                 onSearch = { _, _, _ -> },
+                onLoadMore = {},
                 onRepoClick = {}
             )
         }
@@ -73,9 +82,13 @@ class SearchScreenTest {
                 repos = emptyList(),
                 query = "kotlin",
                 language = "",
+                isLoadingMore = false,
+                isLastPage = false,
+                listState = rememberLazyListState(),
                 onQueryChange = {},
                 onLanguageChange = {},
                 onSearch = { _, _, _ -> },
+                onLoadMore = {},
                 onRepoClick = {}
             )
         }
@@ -94,9 +107,13 @@ class SearchScreenTest {
                 repos = emptyList(),
                 query = "",
                 language = "",
+                isLoadingMore = false,
+                isLastPage = false,
+                listState = rememberLazyListState(),
                 onQueryChange = onQueryChangeMock,
                 onLanguageChange = onLanguageChangeMock,
                 onSearch = { _, _, _ -> },
+                onLoadMore = {},
                 onRepoClick = {}
             )
         }
@@ -116,9 +133,13 @@ class SearchScreenTest {
                 repos = emptyList(),
                 query = "",
                 language = "",
+                isLoadingMore = false,
+                isLastPage = false,
+                listState = rememberLazyListState(),
                 onQueryChange = {},
                 onLanguageChange = {},
                 onSearch = { _, _, _ -> },
+                onLoadMore = {},
                 onRepoClick = {}
             )
         }

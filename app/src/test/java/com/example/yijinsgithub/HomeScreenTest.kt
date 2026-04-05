@@ -34,10 +34,13 @@ class HomeScreenTest {
                 uiState = GithubUiState.Idle,
                 userState = UserState.Anonymous,
                 homeRepos = emptyList(),
+                isLoadingMore = false,
+                isLastPage = false,
                 onSearchClick = {},
                 onProfileClick = {},
                 onLogin = onLoginMock,
                 onRefresh = {},
+                onLoadMore = {},
                 onRepoClick = {}
             )
         }
@@ -58,10 +61,13 @@ class HomeScreenTest {
                 uiState = GithubUiState.Idle,
                 userState = UserState.Anonymous,
                 homeRepos = emptyList(),
+                isLoadingMore = false,
+                isLastPage = false,
                 onSearchClick = onSearchClickMock,
                 onProfileClick = {},
                 onLogin = {},
                 onRefresh = {},
+                onLoadMore = {},
                 onRepoClick = {}
             )
         }
@@ -77,10 +83,13 @@ class HomeScreenTest {
                 uiState = GithubUiState.Loading,
                 userState = UserState.Anonymous,
                 homeRepos = emptyList(),
+                isLoadingMore = false,
+                isLastPage = false,
                 onSearchClick = {},
                 onProfileClick = {},
                 onLogin = {},
                 onRefresh = {},
+                onLoadMore = {},
                 onRepoClick = {}
             )
         }
@@ -96,10 +105,13 @@ class HomeScreenTest {
                 uiState = GithubUiState.Error(errorMessage),
                 userState = UserState.Anonymous,
                 homeRepos = emptyList(),
+                isLoadingMore = false,
+                isLastPage = false,
                 onSearchClick = {},
                 onProfileClick = {},
                 onLogin = {},
                 onRefresh = {},
+                onLoadMore = {},
                 onRepoClick = {}
             )
         }
@@ -123,10 +135,13 @@ class HomeScreenTest {
                 uiState = GithubUiState.Idle,
                 userState = authenticatedState,
                 homeRepos = emptyList(),
+                isLoadingMore = false,
+                isLastPage = false,
                 onSearchClick = {},
                 onProfileClick = {},
                 onLogin = {},
                 onRefresh = {},
+                onLoadMore = {},
                 onRepoClick = {}
             )
         }

@@ -21,12 +21,12 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
-import org.mockito.ArgumentMatchers.anyString
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
 import org.mockito.kotlin.any
 import org.mockito.kotlin.atLeastOnce
 import org.mockito.kotlin.whenever
+import org.mockito.kotlin.anyOrNull
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class GithubViewModelTest {
@@ -70,7 +70,7 @@ class GithubViewModelTest {
         whenever(application.getString(any())).thenReturn("Error")
         
         runBlocking {
-            whenever(repository.getPopularRepositories()).thenReturn(emptyList())
+            whenever(repository.getPopularRepositories(any())).thenReturn(emptyList())
         }
         
         viewModel = GithubViewModel(application, tokenManager, repository)
@@ -98,7 +98,7 @@ class GithubViewModelTest {
     @Test
     fun `test searchRepos success updates state`() = runTest {
         val repos = listOf(mockRepo)
-        whenever(repository.searchRepositories(anyString(), any())).thenReturn(repos)
+        whenever(repository.searchRepositories(any(), anyOrNull(), any(), any())).thenReturn(repos)
 
         viewModel.searchRepos("query", "Kotlin")
         
@@ -136,7 +136,7 @@ class GithubViewModelTest {
         whenever(repository.getUserRepositories(token)).thenReturn(listOf(mockRepo))
         tokenFlow.value = token
 
-        whenever(repository.createIssue(anyString(), anyString(), anyString(), anyString(), anyString()))
+        whenever(repository.createIssue(any(), any(), any(), any(), any()))
             .thenReturn(IssueResponse(1L, 1, "Title", "Body"))
 
         viewModel.createIssue("owner", "repo", "Title", "Body")
