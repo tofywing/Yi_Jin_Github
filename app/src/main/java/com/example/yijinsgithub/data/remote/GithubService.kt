@@ -36,10 +36,13 @@ interface GithubService {
 
     /**
      * Lists repositories for the authenticated user with pagination.
+     * Defaults to sorting by 'pushed' time to show most recent work first.
      */
     @GET("user/repos")
     suspend fun getUserRepositories(
         @Header("Authorization") token: String,
+        @Query("sort") sort: String = "pushed",
+        @Query("direction") direction: String = "desc",
         @Query("per_page") perPage: Int = DEFAULT_PER_PAGE,
         @Query("page") page: Int = DEFAULT_PAGE
     ): List<Repo>
