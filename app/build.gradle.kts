@@ -88,6 +88,7 @@ dependencies {
     // Data & Security
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.security.crypto)
+    implementation(libs.rootbeer)
 
     // Baseline Profile
     implementation(libs.androidx.profileinstaller)

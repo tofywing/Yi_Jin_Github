@@ -2,6 +2,7 @@ package com.example.yijinsgithub.security
 
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
+import android.util.Base64
 import com.example.yijinsgithub.common.Constants.CRYPTO_TRANSFORMATION
 import com.example.yijinsgithub.common.Constants.KEY_ALIAS
 import com.example.yijinsgithub.common.Constants.KEY_STORE_PROVIDER
@@ -10,7 +11,6 @@ import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
-import java.util.Base64
 
 /**
  * A manager class responsible for encrypting and decrypting sensitive data using the Android KeyStore system.
@@ -39,7 +39,10 @@ class CryptoManager(
         }
 
         val keyStore = KeyStore.getInstance(KEY_STORE_PROVIDER).apply { load(null) }
-        keyStore.getKey(KEY_ALIAS, null)?.let { return it as SecretKey }
+        val existingKey = keyStore.getKey(KEY_ALIAS, null)
+        if (existingKey != null) {
+            return existingKey as SecretKey
+        }
 
         val keyGenerator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, KEY_STORE_PROVIDER)
         val spec = KeyGenParameterSpec.Builder(
@@ -62,14 +65,14 @@ class CryptoManager(
         cipher.init(Cipher.ENCRYPT_MODE, getOrCreateKey())
         val encryptedBytes = cipher.doFinal(data.toByteArray())
         val combined = cipher.iv + encryptedBytes
-        return Base64.getEncoder().encodeToString(combined)
+        return Base64.encodeToString(combined, Base64.DEFAULT)
     }
 
     /**
      * Decrypts the [encryptedData] Base64 string and returns the original plain text.
      */
     fun decrypt(encryptedData: String): String {
-        val combined = Base64.getDecoder().decode(encryptedData)
+        val combined = Base64.decode(encryptedData, Base64.DEFAULT)
         val iv = combined.sliceArray(0 until 12) // GCM default IV length is 12 bytes
         val cipherText = combined.sliceArray(12 until combined.size)
 

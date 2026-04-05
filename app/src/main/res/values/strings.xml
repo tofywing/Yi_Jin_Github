@@ -42,6 +42,9 @@
     <string name="repo_owner_avatar_desc">Owner Avatar</string>
     <string name="reached_bottom">You\'ve reached the end!</string>
 
+    <!-- Security -->
+    <string name="root_detection_error">Security Risk Detected:\nThis application cannot run on a rooted device or emulator for your protection.</string>
+
     <!-- Error Messages -->
     <string name="error_unknown">Unknown Error</string>
     <string name="error_search_failed">Search failed</string>

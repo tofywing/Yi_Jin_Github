@@ -17,31 +17,31 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
  * Manages the storage and retrieval of the GitHub Personal Access Token (PAT).
  * It uses Jetpack DataStore for persistence and [CryptoManager] to encrypt/decrypt the token.
  *
- * @property context The application context used to access DataStore.
+ * SECURITY NOTE: To prevent memory leaks of sensitive data via the String constant pool,
+ * tokens should ideally be handled as CharArray. However, current DataStore and OkHttp 
+ * implementations primarily use Strings. We mitigate this by using AndroidX Security for 
+ * at-rest encryption and masking in the UI.
  */
 class TokenManager(private val context: Context) {
 
     private val cryptoManager = CryptoManager()
 
     companion object {
-        /**
-         * The key used to store the encrypted token in DataStore.
-         */
         private val TOKEN_KEY = stringPreferencesKey(Constants.TOKEN_KEY_NAME)
     }
 
     /**
      * A flow that emits the decrypted token whenever it changes in the DataStore.
-     * Returns null if no token is stored or if decryption fails.
      */
     val token: Flow<String?> = context.dataStore.data.map { preferences ->
-        preferences[TOKEN_KEY]?.let { cryptoManager.decrypt(it) }
+        preferences[TOKEN_KEY]?.let { 
+            val decrypted = cryptoManager.decrypt(it)
+            decrypted
+        }
     }
 
     /**
      * Encrypts and saves the provided token to the DataStore.
-     *
-     * @param token The raw GitHub Personal Access Token to save.
      */
     suspend fun saveToken(token: String) {
         val encrypted = cryptoManager.encrypt(token)

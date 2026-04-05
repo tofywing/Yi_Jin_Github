@@ -24,6 +24,7 @@ mockitoKotlin = "5.3.1"
 kotlinxCoroutinesTest = "1.9.0"
 androidxArchCoreTesting = "2.2.0"
 robolectric = "4.12.2"
+rootbeer = "0.1.2"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -59,6 +60,7 @@ mockito-kotlin = { group = "org.mockito.kotlin", name = "mockito-kotlin", versio
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "kotlinxCoroutinesTest" }
 androidx-arch-core-testing = { group = "androidx.arch.core", name = "core-testing", version.ref = "androidxArchCoreTesting" }
 robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
+rootbeer = { group = "com.scottyab", name = "rootbeer-lib", version.ref = "rootbeer" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

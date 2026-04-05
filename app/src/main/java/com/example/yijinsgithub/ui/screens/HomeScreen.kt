@@ -13,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import com.example.yijinsgithub.R
 import com.example.yijinsgithub.data.model.Repo
 import com.example.yijinsgithub.ui.components.RepoList
@@ -149,7 +150,9 @@ fun LoginSection(onLogin: (String) -> Unit, isLoading: Boolean) {
                 label = { Text(stringResource(R.string.pat_label)) },
                 modifier = Modifier.fillMaxWidth(),
                 placeholder = { Text(stringResource(R.string.pat_placeholder)) },
-                enabled = !isLoading
+                enabled = !isLoading,
+                visualTransformation = PasswordVisualTransformation(), // SECURITY: Mask token input
+                singleLine = true
             )
             Spacer(modifier = Modifier.height(Dimens.SpacerLarge))
             Button(

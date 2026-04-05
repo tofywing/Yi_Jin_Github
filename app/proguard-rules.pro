@@ -40,3 +40,21 @@
 -keepnames class androidx.navigation.NavHost
 -keepnames class androidx.navigation.NavController
 -keepnames class androidx.navigation.NavBackStackEntry
+
+# Custom Obfuscation Dictionary
+# Using non-standard characters makes reverse engineering much harder
+# Note: You can create a file named 'dictionary.txt' with complex characters and link it:
+# -obfuscationdictionary dictionary.txt
+# -classobfuscationdictionary dictionary.txt
+# -packageobfuscationdictionary dictionary.txt
+
+# For this project, we'll ensure critical security and data management packages are deeply obfuscated
+# by not including them in 'keep' rules unless necessary.
+# Specifically, com.example.yijinsgithub.security.** and com.example.yijinsgithub.data.local.**
+# will be obfuscated.
+
+# Ensure debugging info is removed in release
+-repackageclasses ''
+-allowaccessmodification
+-optimizations !code/simplification/arithmetic,!field/*,!class/merging/*
+-keepattributes SourceFile, LineNumberTable

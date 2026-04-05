@@ -42,6 +42,9 @@
     <string name="repo_owner_avatar_desc">所有者头像</string>
     <string name="reached_bottom">您已滑到底部！</string>
 
+    <!-- 安全 -->
+    <string name="root_detection_error">检测到安全风险：\n为了保障您的数据安全，本应用无法在已 Root 的设备或模拟器上运行。</string>
+
     <!-- 错误信息 -->
     <string name="error_unknown">未知错误</string>
     <string name="error_search_failed">搜索失败</string>

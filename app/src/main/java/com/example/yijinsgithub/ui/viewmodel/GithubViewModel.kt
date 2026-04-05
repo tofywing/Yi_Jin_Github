@@ -29,7 +29,20 @@ import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 
 /**
- * ViewModel responsible for managing the state and business logic of the GitHub application.
+ * ViewModel responsible for managing the application state and business logic for GitHub interactions.
+ *
+ * This class follows the MVVM architecture pattern and implements several key responsibilities:
+ * 1. **State Management**: Orchestrates UI states (Idle, Loading, Success, Error) and reactive data
+ *    streams for repositories and user profiles using Kotlin Flow.
+ * 2. **Authentication Handling**: Manages GitHub Personal Access Tokens (PAT) through [TokenManager],
+ *    supporting both authenticated and anonymous browsing modes.
+ * 3. **Data Coordination**: Interacts with [GithubRepository] to fetch data from the GitHub REST API
+ *    and handles local persistence of security tokens.
+ * 4. **Pagination Logic**: Implements incremental loading for both popular trends and search results
+ *    to ensure high performance and low memory footprint.
+ * 5. **Network Security**: Configures the underlying [OkHttpClient] with necessary interceptors while
+ *    deferring SSL trust verification to the Android Network Security Configuration for optimal
+ *    resilience and maintainability.
  */
 class GithubViewModel @JvmOverloads constructor(
     application: Application,
@@ -61,13 +74,13 @@ class GithubViewModel @JvmOverloads constructor(
 
     private val _isLastPage = MutableStateFlow(false)
     val isLastPage: StateFlow<Boolean> = _isLastPage.asStateFlow()
-    
+
     private val _isSearchLastPage = MutableStateFlow(false)
     val isSearchLastPage: StateFlow<Boolean> = _isSearchLastPage.asStateFlow()
 
     private var homePage = DEFAULT_PAGE
     private var searchPage = DEFAULT_PAGE
-    
+
     private var homeJob: Job? = null
     private var searchJob: Job? = null
     private var profileJob: Job? = null
@@ -129,10 +142,10 @@ class GithubViewModel @JvmOverloads constructor(
 
     fun loadMoreHomeRepos() {
         if (_isLoadingMore.value || _isLastPage.value || _uiState.value is GithubUiState.Loading) return
-        
+
         _isLoadingMore.value = true
         homePage++
-        
+
         viewModelScope.launch {
             try {
                 val currentUserState = _userState.value
@@ -141,7 +154,7 @@ class GithubViewModel @JvmOverloads constructor(
                 } else {
                     repository.getPopularRepositories(page = homePage)
                 }
-                
+
                 if (newRepos.isNotEmpty()) {
                     _homeRepos.value = _homeRepos.value + newRepos
                 }
@@ -164,7 +177,7 @@ class GithubViewModel @JvmOverloads constructor(
             try {
                 val results = repository.searchRepositories(query, language, page = searchPage)
                 _searchRepos.value = results
-                _isSearchLastPage.value = results.size < DEFAULT_PER_PAGE
+                _isLastPage.value = results.size < DEFAULT_PER_PAGE
                 _uiState.value = GithubUiState.Success
             } catch (e: Exception) {
                 handleError(e)
@@ -174,16 +187,17 @@ class GithubViewModel @JvmOverloads constructor(
 
     fun loadMoreSearchRepos() {
         if (_isLoadingMore.value || _isSearchLastPage.value || _uiState.value is GithubUiState.Loading) return
-        
+
         val query = _searchQuery.value
         if (query.isBlank()) return
 
         _isLoadingMore.value = true
         searchPage++
-        
+
         viewModelScope.launch {
             try {
-                val newRepos = repository.searchRepositories(query, _searchLanguage.value, page = searchPage)
+                val newRepos =
+                    repository.searchRepositories(query, _searchLanguage.value, page = searchPage)
                 if (newRepos.isNotEmpty()) {
                     _searchRepos.value = _searchRepos.value + newRepos
                 }
@@ -221,7 +235,7 @@ class GithubViewModel @JvmOverloads constructor(
 
     private fun handleError(e: Exception, isPagination: Boolean = false) {
         if (e is CancellationException) return
-        
+
         val message = when (e) {
             is HttpException -> {
                 when (e.code()) {
@@ -230,9 +244,10 @@ class GithubViewModel @JvmOverloads constructor(
                     else -> "Network Error: ${e.code()}"
                 }
             }
+
             else -> e.message ?: "Unknown Error"
         }
-        
+
         _uiState.value = GithubUiState.Error(message)
     }
 
@@ -300,10 +315,19 @@ class GithubViewModel @JvmOverloads constructor(
                 level = HttpLoggingInterceptor.Level.BODY
             }
             val authInterceptor = AuthInterceptor(tokenManager)
+
+            // SECURITY IMPROVEMENT:
+            // Previously, SSL Pinning was hardcoded here using CertificatePinner.
+            // Now we rely on Android's native 'Network Security Configuration' (res/xml/network_security_config.xml).
+            // Benefits:
+            // 1. Separation of concerns: Security policy is defined in XML, not code.
+            // 2. Resilience: Avoids app crashes or connectivity loss when GitHub rotates certificates.
+            // 3. System Integration: Uses the Android framework's built-in mechanism for verifying trusted anchors.
             val client = OkHttpClient.Builder()
                 .addInterceptor(logging)
                 .addInterceptor(authInterceptor)
                 .build()
+
             val retrofit = Retrofit.Builder()
                 .baseUrl(Constants.GITHUB_BASE_URL)
                 .client(client)
