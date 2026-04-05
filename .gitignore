@@ -1,0 +1,14 @@
+# Ignore everything
+*
+
+# Allow the .gitignore file itself
+!.gitignore
+
+# Allow the specific APK and README
+!yijin_github.apk
+!README.md
+
+# If you have directories that you want to keep (optional, but good for context)
+# !app/
+# !gradle/
+# !.github/
