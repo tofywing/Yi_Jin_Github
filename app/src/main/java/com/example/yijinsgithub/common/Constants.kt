@@ -22,4 +22,5 @@ object Constants {
     const val DEFAULT_PAGE = 1
     const val DEFAULT_SORT = "stars"
     const val DEFAULT_ORDER = "desc"
+    const val DEFAULT_USER_REPO_SORT = "pushed"
 }

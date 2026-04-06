@@ -4,6 +4,7 @@ import com.example.yijinsgithub.common.Constants.DEFAULT_ORDER
 import com.example.yijinsgithub.common.Constants.DEFAULT_PAGE
 import com.example.yijinsgithub.common.Constants.DEFAULT_PER_PAGE
 import com.example.yijinsgithub.common.Constants.DEFAULT_SORT
+import com.example.yijinsgithub.common.Constants.DEFAULT_USER_REPO_SORT
 import com.example.yijinsgithub.data.model.*
 import retrofit2.http.*
 
@@ -41,8 +42,8 @@ interface GithubService {
     @GET("user/repos")
     suspend fun getUserRepositories(
         @Header("Authorization") token: String,
-        @Query("sort") sort: String = "pushed",
-        @Query("direction") direction: String = "desc",
+        @Query("sort") sort: String = DEFAULT_USER_REPO_SORT,
+        @Query("direction") direction: String = DEFAULT_ORDER,
         @Query("per_page") perPage: Int = DEFAULT_PER_PAGE,
         @Query("page") page: Int = DEFAULT_PAGE
     ): List<Repo>

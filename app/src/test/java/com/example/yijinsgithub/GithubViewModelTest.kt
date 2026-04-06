@@ -1,6 +1,10 @@
 package com.example.yijinsgithub
 
 import android.app.Application
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import com.example.yijinsgithub.data.local.TokenManager
 import com.example.yijinsgithub.data.model.IssueResponse
@@ -21,23 +25,32 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
 import org.mockito.kotlin.any
 import org.mockito.kotlin.atLeastOnce
 import org.mockito.kotlin.whenever
 import org.mockito.kotlin.anyOrNull
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [33])
 class GithubViewModelTest {
 
     @get:Rule
     val instantTaskExecutorRule = InstantTaskExecutorRule()
 
     private val testDispatcher = UnconfinedTestDispatcher()
+    
     private val application = mock(Application::class.java)
     private val tokenManager = mock(TokenManager::class.java)
     private val repository = mock(GithubRepository::class.java)
+    private val connectivityManager = mock(ConnectivityManager::class.java)
+    private val network = mock(Network::class.java)
+    private val capabilities = mock(NetworkCapabilities::class.java)
     
     private val tokenFlow = MutableStateFlow<String?>(null)
     
@@ -66,8 +79,15 @@ class GithubViewModelTest {
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
-        whenever(tokenManager.token).thenReturn(tokenFlow)
+        
+        whenever(application.getSystemService(Context.CONNECTIVITY_SERVICE)).thenReturn(connectivityManager)
         whenever(application.getString(any())).thenReturn("Error")
+        
+        whenever(connectivityManager.activeNetwork).thenReturn(network)
+        whenever(connectivityManager.getNetworkCapabilities(network)).thenReturn(capabilities)
+        whenever(capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)).thenReturn(true)
+        
+        whenever(tokenManager.token).thenReturn(tokenFlow)
         
         runBlocking {
             whenever(repository.getPopularRepositories(any())).thenReturn(emptyList())
