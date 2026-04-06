@@ -30,7 +30,9 @@ google-services.json
 *.jks
 apikey.properties
 
+# AI Context (Local Only)
+GEMINI_CONTEXT.md
+
 # Miscellaneous
 /out
-/captures
 *.log

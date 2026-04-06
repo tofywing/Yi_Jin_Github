@@ -1,8 +1,14 @@
 package com.example.yijinsgithub.ui.viewmodel
 
 import android.app.Application
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.yijinsgithub.R
 import com.example.yijinsgithub.common.Constants
 import com.example.yijinsgithub.common.Constants.DEFAULT_PAGE
 import com.example.yijinsgithub.common.Constants.DEFAULT_PER_PAGE
@@ -27,28 +33,16 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.HttpException
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
+import java.io.IOException
 
 /**
  * ViewModel responsible for managing the application state and business logic for GitHub interactions.
- *
- * This class follows the MVVM architecture pattern and implements several key responsibilities:
- * 1. **State Management**: Orchestrates UI states (Idle, Loading, Success, Error) and reactive data
- *    streams for repositories and user profiles using Kotlin Flow.
- * 2. **Authentication Handling**: Manages GitHub Personal Access Tokens (PAT) through [TokenManager],
- *    supporting both authenticated and anonymous browsing modes.
- * 3. **Data Coordination**: Interacts with [GithubRepository] to fetch data from the GitHub REST API
- *    and handles local persistence of security tokens.
- * 4. **Pagination Logic**: Implements incremental loading for both popular trends and search results
- *    to ensure high performance and low memory footprint.
- * 5. **Network Security**: Configures the underlying [OkHttpClient] with necessary interceptors while
- *    deferring SSL trust verification to the Android Network Security Configuration for optimal
- *    resilience and maintainability.
  */
 class GithubViewModel @JvmOverloads constructor(
-    application: Application,
-    private val tokenManager: TokenManager = TokenManager(application),
+    private val app: Application,
+    private val tokenManager: TokenManager = TokenManager(app),
     private val repository: GithubRepository = createDefaultRepository(tokenManager)
-) : AndroidViewModel(application) {
+) : AndroidViewModel(app) {
 
     private val _uiState = MutableStateFlow<GithubUiState>(GithubUiState.Idle)
     val uiState: StateFlow<GithubUiState> = _uiState.asStateFlow()
@@ -68,6 +62,9 @@ class GithubViewModel @JvmOverloads constructor(
     private val _searchLanguage = MutableStateFlow("")
     val searchLanguage: StateFlow<String> = _searchLanguage.asStateFlow()
 
+    private val _isOffline = MutableStateFlow(false)
+    val isOffline: StateFlow<Boolean> = _isOffline.asStateFlow()
+
     // Pagination & Loading States
     private val _isLoadingMore = MutableStateFlow(false)
     val isLoadingMore: StateFlow<Boolean> = _isLoadingMore.asStateFlow()
@@ -86,7 +83,27 @@ class GithubViewModel @JvmOverloads constructor(
     private var profileJob: Job? = null
     private var issueJob: Job? = null
 
+    private val connectivityManager = app.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+    private val networkCallback = object : ConnectivityManager.NetworkCallback() {
+        override fun onAvailable(network: Network) {
+            _isOffline.value = false
+            // Clear error state if it was a network error
+            if (_uiState.value is GithubUiState.Error && 
+                (_uiState.value as GithubUiState.Error).message == app.getString(R.string.error_no_internet)) {
+                _uiState.value = GithubUiState.Idle
+            }
+        }
+
+        override fun onLost(network: Network) {
+            _isOffline.value = true
+            _uiState.value = GithubUiState.Error(app.getString(R.string.error_no_internet))
+        }
+    }
+
     init {
+        checkInitialNetworkState()
+        registerNetworkCallback()
+        
         viewModelScope.launch {
             tokenManager.token.collectLatest { token ->
                 token?.let { nonNullToken ->
@@ -98,6 +115,24 @@ class GithubViewModel @JvmOverloads constructor(
                 }
             }
         }
+    }
+
+    private fun checkInitialNetworkState() {
+        val activeNetwork = connectivityManager.activeNetwork
+        val capabilities = connectivityManager.getNetworkCapabilities(activeNetwork)
+        _isOffline.value = capabilities == null || !capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+    }
+
+    private fun registerNetworkCallback() {
+        val request = NetworkRequest.Builder()
+            .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            .build()
+        connectivityManager.registerNetworkCallback(request, networkCallback)
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        connectivityManager.unregisterNetworkCallback(networkCallback)
     }
 
     fun updateSearchQuery(query: String) {
@@ -124,6 +159,10 @@ class GithubViewModel @JvmOverloads constructor(
     }
 
     private fun loadPopularRepos(isInitialLoad: Boolean = false) {
+        if (_isOffline.value) {
+            _uiState.value = GithubUiState.Error(app.getString(R.string.error_no_internet))
+            return
+        }
         homeJob?.cancel()
         homePage = DEFAULT_PAGE
         _isLastPage.value = false
@@ -141,7 +180,7 @@ class GithubViewModel @JvmOverloads constructor(
     }
 
     fun loadMoreHomeRepos() {
-        if (_isLoadingMore.value || _isLastPage.value || _uiState.value is GithubUiState.Loading) return
+        if (_isOffline.value || _isLoadingMore.value || _isLastPage.value || _uiState.value is GithubUiState.Loading) return
 
         _isLoadingMore.value = true
         homePage++
@@ -169,6 +208,10 @@ class GithubViewModel @JvmOverloads constructor(
     }
 
     fun searchRepos(query: String, language: String?, isRefresh: Boolean = false) {
+        if (_isOffline.value) {
+            _uiState.value = GithubUiState.Error(app.getString(R.string.error_no_internet))
+            return
+        }
         searchJob?.cancel()
         searchPage = DEFAULT_PAGE
         _isSearchLastPage.value = false
@@ -186,7 +229,7 @@ class GithubViewModel @JvmOverloads constructor(
     }
 
     fun loadMoreSearchRepos() {
-        if (_isLoadingMore.value || _isSearchLastPage.value || _uiState.value is GithubUiState.Loading) return
+        if (_isOffline.value || _isLoadingMore.value || _isSearchLastPage.value || _uiState.value is GithubUiState.Loading) return
 
         val query = _searchQuery.value
         if (query.isBlank()) return
@@ -212,6 +255,10 @@ class GithubViewModel @JvmOverloads constructor(
     }
 
     private fun loadUserProfile(token: String, isInitialLoad: Boolean = false) {
+        if (_isOffline.value && isInitialLoad) {
+            _uiState.value = GithubUiState.Error(app.getString(R.string.error_no_internet))
+            return
+        }
         profileJob?.cancel()
         homePage = DEFAULT_PAGE
         _isLastPage.value = false
@@ -237,15 +284,15 @@ class GithubViewModel @JvmOverloads constructor(
         if (e is CancellationException) return
 
         val message = when (e) {
+            is IOException -> app.getString(R.string.error_no_internet)
             is HttpException -> {
                 when (e.code()) {
-                    403 -> "API Rate limit exceeded. Please try login to increase limit."
-                    401 -> "Unauthorized. Please check your token."
-                    else -> "Network Error: ${e.code()}"
+                    403 -> app.getString(R.string.error_rate_limit)
+                    401 -> app.getString(R.string.error_unauthorized)
+                    else -> app.getString(R.string.error_network_generic, e.code())
                 }
             }
-
-            else -> e.message ?: "Unknown Error"
+            else -> e.message ?: app.getString(R.string.error_unknown)
         }
 
         _uiState.value = GithubUiState.Error(message)
@@ -276,6 +323,10 @@ class GithubViewModel @JvmOverloads constructor(
     }
 
     fun createIssue(owner: String, repo: String, title: String, body: String) {
+        if (_isOffline.value) {
+            _uiState.value = GithubUiState.Error(app.getString(R.string.error_no_internet))
+            return
+        }
         val currentUserState = _userState.value
         if (currentUserState is UserState.Authenticated) {
             issueJob?.cancel()
@@ -316,13 +367,6 @@ class GithubViewModel @JvmOverloads constructor(
             }
             val authInterceptor = AuthInterceptor(tokenManager)
 
-            // SECURITY IMPROVEMENT:
-            // Previously, SSL Pinning was hardcoded here using CertificatePinner.
-            // Now we rely on Android's native 'Network Security Configuration' (res/xml/network_security_config.xml).
-            // Benefits:
-            // 1. Separation of concerns: Security policy is defined in XML, not code.
-            // 2. Resilience: Avoids app crashes or connectivity loss when GitHub rotates certificates.
-            // 3. System Integration: Uses the Android framework's built-in mechanism for verifying trusted anchors.
             val client = OkHttpClient.Builder()
                 .addInterceptor(logging)
                 .addInterceptor(authInterceptor)
